@@ -18,8 +18,11 @@ pub struct Workspace {
 
 impl Workspace {
     /// Reference accepted by `niri msg action focus-workspace`.
+    ///
+    /// Always the index: niri parses an all-numeric reference as an index, so a
+    /// workspace named e.g. "1080" would otherwise focus the wrong workspace.
     pub fn reference(&self) -> String {
-        self.name.clone().unwrap_or_else(|| self.idx.to_string())
+        self.idx.to_string()
     }
 
     pub fn label(&self) -> String {
