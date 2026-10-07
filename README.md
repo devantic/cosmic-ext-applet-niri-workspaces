@@ -28,21 +28,21 @@ cargo build --release
 install -Dm0755 target/release/cosmic-ext-applet-niri-workspaces \
     ~/.local/bin/cosmic-ext-applet-niri-workspaces
 sed 's|^Exec=.*|Exec=/home/YOU/.local/bin/cosmic-ext-applet-niri-workspaces|' \
-    resources/dev.paul.CosmicExtAppletNiriWorkspaces.desktop \
-    > ~/.local/share/applications/dev.paul.CosmicExtAppletNiriWorkspaces.desktop
+    resources/io.github.devantic.CosmicExtAppletNiriWorkspaces.desktop \
+    > ~/.local/share/applications/io.github.devantic.CosmicExtAppletNiriWorkspaces.desktop
 ```
 
 Replace `YOU` with your username, or install the binary and desktop file system-wide.
 
 ## Add it to the panel
 
-Add `dev.paul.CosmicExtAppletNiriWorkspaces` to the panel's applet list in
+Add `io.github.devantic.CosmicExtAppletNiriWorkspaces` to the panel's applet list in
 COSMIC Settings, or edit
 `~/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings`:
 
 ```ron
 Some(([
-    "dev.paul.CosmicExtAppletNiriWorkspaces",
+    "io.github.devantic.CosmicExtAppletNiriWorkspaces",
 ], [
     "com.system76.CosmicAppletTime",
 ]))

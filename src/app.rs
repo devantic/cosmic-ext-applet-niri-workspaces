@@ -66,7 +66,7 @@ impl cosmic::Application for Workspaces {
     type Flags = ();
     type Message = Message;
 
-    const APP_ID: &'static str = "dev.paul.CosmicExtAppletNiriWorkspaces";
+    const APP_ID: &'static str = "io.github.devantic.CosmicExtAppletNiriWorkspaces";
 
     fn core(&self) -> &cosmic::Core {
         &self.core
