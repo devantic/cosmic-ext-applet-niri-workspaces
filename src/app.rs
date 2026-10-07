@@ -7,17 +7,21 @@ use cosmic::widget;
 use std::sync::LazyLock;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
+const MAX_TITLE_CHARS: usize = 60;
+
 static AUTOSIZE_ID: LazyLock<widget::Id> = LazyLock::new(|| widget::Id::new("niri-workspaces"));
 
 #[derive(Default)]
 pub struct Workspaces {
     core: cosmic::Core,
     workspaces: Vec<Workspace>,
+    title: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     Updated(Vec<Workspace>),
+    Title(Option<String>),
     Focus(String),
 }
 
@@ -30,12 +34,23 @@ fn event_stream(_: &u8) -> impl cosmic::iced::futures::Stream<Item = Message> {
                 if let Some(list) = niri::workspaces().await {
                     let _ = channel.send(Message::Updated(list)).await;
                 }
+                let _ = channel.send(Message::Title(niri::focused_title().await)).await;
                 if let Some(mut child) = niri::event_stream() {
                     if let Some(stdout) = child.stdout.take() {
                         let mut lines = BufReader::new(stdout).lines();
-                        while niri::next_event(&mut lines).await {
-                            if let Some(list) = niri::workspaces().await {
-                                let _ = channel.send(Message::Updated(list)).await;
+                        while let Some(event) = niri::next_event(&mut lines).await {
+                            match event {
+                                niri::Event::Workspaces => {
+                                    if let Some(list) = niri::workspaces().await {
+                                        let _ = channel.send(Message::Updated(list)).await;
+                                    }
+                                    let title = niri::focused_title().await;
+                                    let _ = channel.send(Message::Title(title)).await;
+                                }
+                                niri::Event::Window => {
+                                    let title = niri::focused_title().await;
+                                    let _ = channel.send(Message::Title(title)).await;
+                                }
                             }
                         }
                     }
@@ -69,6 +84,7 @@ impl cosmic::Application for Workspaces {
             Workspaces {
                 core,
                 workspaces: Vec::new(),
+                title: None,
             },
             Task::none(),
         )
@@ -77,6 +93,7 @@ impl cosmic::Application for Workspaces {
     fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
         match message {
             Message::Updated(list) => self.workspaces = list,
+            Message::Title(title) => self.title = title,
             Message::Focus(reference) => niri::focus(reference),
         }
         Task::none()
@@ -117,7 +134,21 @@ impl cosmic::Application for Workspaces {
             .collect();
 
         let content: Element<'_, Message> = if horizontal {
-            widget::row::with_children(buttons).spacing(2).into()
+            let mut row = widget::row::with_children(buttons)
+                .spacing(2)
+                .align_y(cosmic::iced::Alignment::Center);
+            if let Some(title) = &self.title {
+                let shown = if title.chars().count() > MAX_TITLE_CHARS {
+                    let cut: String = title.chars().take(MAX_TITLE_CHARS).collect();
+                    format!("{}…", cut.trim_end())
+                } else {
+                    title.clone()
+                };
+                row = row.push(
+                    widget::container(self.core.applet.text(shown)).padding([0, 0, 0, 10]),
+                );
+            }
+            row.into()
         } else {
             widget::column::with_children(buttons).spacing(2).into()
         };

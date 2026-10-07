@@ -8,6 +8,7 @@ use tokio::process::Command;
 #[derive(Debug, Clone, Deserialize)]
 pub struct Workspace {
     pub idx: u32,
+    #[allow(dead_code)]
     pub name: Option<String>,
     pub output: Option<String>,
     #[allow(dead_code)]
@@ -60,19 +61,41 @@ pub fn focus(reference: String) {
     });
 }
 
-/// Waits for the next workspace related event. Returns false if the stream ended.
-pub async fn next_event(lines: &mut tokio::io::Lines<BufReader<tokio::process::ChildStdout>>) -> bool {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Event {
+    Workspaces,
+    Window,
+}
+
+/// Title of the focused window, if any.
+pub async fn focused_title() -> Option<String> {
+    let out = Command::new("niri")
+        .args(["msg", "--json", "focused-window"])
+        .output()
+        .await
+        .ok()?;
+    let value: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
+    let title = value.get("title")?.as_str()?.trim().to_string();
+    (!title.is_empty()).then_some(title)
+}
+
+/// Waits for the next relevant event. Returns None if the stream ended.
+pub async fn next_event(
+    lines: &mut tokio::io::Lines<BufReader<tokio::process::ChildStdout>>,
+) -> Option<Event> {
     loop {
-        match lines.next_line().await {
-            Ok(Some(line)) => {
-                if line.starts_with("{\"WorkspacesChanged\"")
-                    || line.starts_with("{\"WorkspaceActivated\"")
-                    || line.starts_with("{\"WorkspaceUrgencyChanged\"")
-                {
-                    return true;
-                }
-            }
-            _ => return false,
+        let line = lines.next_line().await.ok()??;
+        if line.starts_with("{\"WorkspacesChanged\"")
+            || line.starts_with("{\"WorkspaceActivated\"")
+            || line.starts_with("{\"WorkspaceUrgencyChanged\"")
+        {
+            return Some(Event::Workspaces);
+        }
+        if line.starts_with("{\"WindowFocusChanged\"")
+            || line.starts_with("{\"WindowOpenedOrChanged\"")
+            || line.starts_with("{\"WindowClosed\"")
+        {
+            return Some(Event::Window);
         }
     }
 }
