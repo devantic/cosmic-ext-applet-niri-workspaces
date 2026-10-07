@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Niri Workspaces
+Comment=Shows and switches niri workspaces
+Type=Application
+Exec=cosmic-ext-applet-niri-workspaces
+Terminal=false
+Categories=COSMIC;
+Keywords=COSMIC;Applet;niri;workspaces;
+NoDisplay=true
+StartupNotify=false
+X-CosmicApplet=true
+X-CosmicShrinkable=true
+X-OverflowPriority=5
